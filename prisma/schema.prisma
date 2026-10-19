@@ -21,6 +21,12 @@ model User {
   createdAt     DateTime
   updatedAt     DateTime
 
+  // Plugin admin de better-auth
+  role          String?
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+
   sessions      Session[]
   accounts      Account[]
   workouts      Workout[]
@@ -40,6 +46,8 @@ model Session {
   userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  impersonatedBy String? // Plugin admin de better-auth
 }
 
 model Account {

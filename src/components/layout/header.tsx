@@ -19,9 +19,10 @@ import { signOut } from "@/lib/auth-client"
 interface HeaderProps {
   userName: string
   userEmail: string
+  isAdmin?: boolean
 }
 
-export function Header({ userName, userEmail }: HeaderProps) {
+export function Header({ userName, userEmail, isAdmin = false }: HeaderProps) {
   const router = useRouter()
   const initials = userName
     .split(" ")
@@ -50,7 +51,7 @@ export function Header({ userName, userEmail }: HeaderProps) {
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0" aria-describedby={undefined}>
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <SidebarContent />
+          <SidebarContent isAdmin={isAdmin} />
         </SheetContent>
       </Sheet>
 

@@ -12,6 +12,7 @@ import {
   BookOpen,
   CalendarDays,
   CalendarRange,
+  ShieldCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -63,8 +64,15 @@ const navItems = [
   },
 ]
 
-export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+const adminItem = {
+  label: "Admin",
+  href: "/admin",
+  icon: ShieldCheck,
+}
+
+export function SidebarContent({ onNavigate, isAdmin = false }: { onNavigate?: () => void; isAdmin?: boolean }) {
   const pathname = usePathname()
+  const items = isAdmin ? [...navItems, adminItem] : navItems
 
   return (
     <div className="flex h-full flex-col">
@@ -77,7 +85,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
 

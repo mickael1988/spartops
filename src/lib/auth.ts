@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
+import { admin } from "better-auth/plugins"
 import { prisma } from "@/lib/prisma"
 
 export const auth = betterAuth({
@@ -13,6 +14,11 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7, // 7 jours
     updateAge: 60 * 60 * 24,     // Renouvellement après 1 jour
   },
+  plugins: [
+    admin({
+      bannedUserMessage: "Ton compte a été suspendu. Contacte l'administrateur de SpartOps.",
+    }),
+  ],
 })
 
 export type Session = typeof auth.$Infer.Session

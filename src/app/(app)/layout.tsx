@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/session"
+import { isAdmin } from "@/lib/admin"
 import { Header } from "@/components/layout/header"
 import { SidebarContent } from "@/components/layout/sidebar"
 import { IntroVideo } from "@/components/intro-video"
@@ -55,7 +56,7 @@ export default async function AppLayout({
 
       {/* Sidebar desktop */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-background/95 backdrop-blur-sm">
-        <SidebarContent />
+        <SidebarContent isAdmin={isAdmin(session.user)} />
       </aside>
 
       {/* Contenu principal */}
@@ -63,6 +64,7 @@ export default async function AppLayout({
         <Header
           userName={session.user.name}
           userEmail={session.user.email}
+          isAdmin={isAdmin(session.user)}
         />
         <main className="flex-1 p-6">{children}</main>
       </div>
