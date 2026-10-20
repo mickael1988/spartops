@@ -1,5 +1,6 @@
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { seedNutrition } from "./nutrition-data"
 
 function getTcpConnectionString(url: string): string {
   if (!url.startsWith("prisma+postgres://")) return url
@@ -597,6 +598,8 @@ async function main() {
     }
   }
   console.log(`✅ ${cardioPrograms.length} cardio WOD seeded`)
+
+  await seedNutrition(prisma)
 }
 
 main()

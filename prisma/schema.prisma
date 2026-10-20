@@ -34,6 +34,7 @@ model User {
   cardioPrograms CardioProgram[]
   oneRepMaxes   OneRepMax[]
   programs      Program[]
+  nutritionProfile NutritionProfile?
 }
 
 model Session {
@@ -300,6 +301,32 @@ enum MealType {
   DEJEUNER
   COLLATION
   DINER
+}
+
+enum Sex {
+  HOMME
+  FEMME
+}
+
+enum ActivityLevel {
+  SEDENTAIRE
+  LEGER
+  MODERE
+  ACTIF
+  TRES_ACTIF
+}
+
+// Données du calculateur de besoins (l'âge reste sur User.age)
+model NutritionProfile {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sex           Sex
+  heightCm      Int
+  weightKg      Float
+  activityLevel ActivityLevel
+  goal          NutritionGoal
+  updatedAt     DateTime      @updatedAt
 }
 
 model NutritionPlan {
