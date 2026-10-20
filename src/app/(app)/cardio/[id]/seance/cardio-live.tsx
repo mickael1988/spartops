@@ -28,6 +28,7 @@ import { PhasedView } from "./phased-view"
 import { AmrapView } from "./amrap-view"
 import { ForTimeView } from "./for-time-view"
 import { FormatBadge } from "../../format-badge"
+import { NumberStepper } from "@/components/ui/number-stepper"
 
 export type CardioLiveWod = {
   id: string
@@ -423,31 +424,21 @@ export function CardioLive({ wod }: { wod: CardioLiveWod }) {
           </p>
 
           {wod.format === "AMRAP" && (
-            <div className="grid grid-cols-2 gap-3">
-              <label className="space-y-1 text-xs text-muted-foreground">
-                Tours terminés
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={MAX_ROUNDS}
-                  value={roundsInput}
-                  onChange={(e) => setRoundsInput(Number(e.target.value) || 0)}
-                  className="w-full rounded-xl border bg-background px-3 py-2 text-center text-lg font-bold text-foreground"
-                />
-              </label>
-              <label className="space-y-1 text-xs text-muted-foreground">
-                Reps en plus
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={MAX_EXTRA_REPS}
-                  value={extraReps}
-                  onChange={(e) => setExtraReps(Number(e.target.value) || 0)}
-                  className="w-full rounded-xl border bg-background px-3 py-2 text-center text-lg font-bold text-foreground"
-                />
-              </label>
+            <div className="space-y-2">
+              <NumberStepper
+                label="Tours terminés"
+                min={0}
+                max={MAX_ROUNDS}
+                value={roundsInput}
+                onChange={(v) => setRoundsInput(v ?? 0)}
+              />
+              <NumberStepper
+                label="Reps en plus"
+                min={0}
+                max={MAX_EXTRA_REPS}
+                value={extraReps}
+                onChange={(v) => setExtraReps(v ?? 0)}
+              />
             </div>
           )}
 

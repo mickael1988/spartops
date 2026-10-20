@@ -5,6 +5,7 @@ import { Trash2, PlusCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NumberStepper } from "@/components/ui/number-stepper"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
@@ -35,7 +36,7 @@ export function WorkoutForm({ groups }: { groups: GroupOption[] }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState("")
   const [sets, setSets] = useState(3)
   const [reps, setReps] = useState(10)
-  const [weight, setWeight] = useState("")
+  const [weight, setWeight] = useState<number | null>(null)
   const [restSeconds, setRestSeconds] = useState(60)
   const [entries, setEntries] = useState<WorkoutEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -52,7 +53,6 @@ export function WorkoutForm({ groups }: { groups: GroupOption[] }) {
   function handleAddExercise() {
     const exercise = filteredExercises.find((e) => e.id === selectedExerciseId)
     if (!exercise) return
-    const parsedWeight = weight !== "" ? parseFloat(weight) : null
     setEntries((prev) => [
       ...prev,
       {
@@ -61,12 +61,12 @@ export function WorkoutForm({ groups }: { groups: GroupOption[] }) {
         exerciseName: exercise.name,
         sets,
         reps,
-        weight: parsedWeight !== null && isFinite(parsedWeight) ? parsedWeight : null,
+        weight,
         restSeconds,
       },
     ])
     setSelectedExerciseId("")
-    setWeight("")
+    setWeight(null)
   }
 
   function handleRemove(index: number) {
@@ -157,50 +157,29 @@ export function WorkoutForm({ groups }: { groups: GroupOption[] }) {
           </div>
 
           {/* Séries / Reps / Poids / Repos */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="space-y-1.5">
-              <Label>Séries</Label>
-              <Input
-                type="number"
-                min={1}
-                max={20}
-                value={sets}
-                onChange={(e) => setSets(Math.max(1, parseInt(e.target.value) || 1))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Répétitions</Label>
-              <Input
-                type="number"
-                min={1}
-                max={100}
-                value={reps}
-                onChange={(e) => setReps(Math.max(1, parseInt(e.target.value) || 1))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Poids (kg)</Label>
-              <Input
-                type="number"
-                min={0}
-                step={0.5}
-                placeholder="Optionnel"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Repos (sec)</Label>
-              <Input
-                type="number"
-                min={0}
-                max={600}
-                value={restSeconds}
-                onChange={(e) =>
-                  setRestSeconds(Math.max(0, parseInt(e.target.value) || 0))
-                }
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-x-6">
+            <NumberStepper label="Séries" min={1} max={20} value={sets} onChange={(v) => setSets(v ?? 1)} />
+            <NumberStepper label="Répétitions" min={1} max={100} value={reps} onChange={(v) => setReps(v ?? 1)} />
+            <NumberStepper
+              label="Poids"
+              unit="kg"
+              min={0}
+              max={500}
+              step={2.5}
+              allowEmpty
+              placeholder="—"
+              value={weight}
+              onChange={setWeight}
+            />
+            <NumberStepper
+              label="Repos"
+              unit="sec"
+              min={0}
+              max={600}
+              step={15}
+              value={restSeconds}
+              onChange={(v) => setRestSeconds(v ?? 0)}
+            />
           </div>
 
           <Button

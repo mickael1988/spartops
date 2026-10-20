@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { NumberStepper } from "@/components/ui/number-stepper"
 import { saveExerciseNote } from "../../actions"
 import {
   ensureLocalWorkout,
@@ -689,37 +690,24 @@ export function WorkoutLive({ workout, historyByExercise, prByExercise, warmupCo
 
             {/* Inputs éditables (exercice en attente) */}
             {!isActive && !isCompleted && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Séries</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={setsMap[we.id] ?? we.sets}
-                    onChange={(e) =>
-                      setSetsMap((prev) => ({ ...prev, [we.id]: Math.max(1, parseInt(e.target.value) || 1) }))
-                    }
-                    className="w-full rounded-xl border bg-background px-3 py-2 text-center text-lg font-bold"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Poids (kg)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={weightMap[we.id] ?? ""}
-                    placeholder="—"
-                    onChange={(e) =>
-                      setWeightMap((prev) => ({
-                        ...prev,
-                        [we.id]: e.target.value === "" ? null : parseFloat(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded-xl border bg-background px-3 py-2 text-center text-lg font-bold"
-                  />
-                </div>
+              <div className="space-y-2">
+                <NumberStepper
+                  label="Séries"
+                  min={1}
+                  max={20}
+                  value={setsMap[we.id] ?? we.sets}
+                  onChange={(v) => setSetsMap((prev) => ({ ...prev, [we.id]: v ?? 1 }))}
+                />
+                <NumberStepper
+                  label="Poids"
+                  unit="kg"
+                  min={0}
+                  max={500}
+                  step={2.5}
+                  allowEmpty
+                  value={weightMap[we.id] ?? null}
+                  onChange={(v) => setWeightMap((prev) => ({ ...prev, [we.id]: v }))}
+                />
               </div>
             )}
 
@@ -755,52 +743,33 @@ export function WorkoutLive({ workout, historyByExercise, prByExercise, warmupCo
                 {done < (setsMap[we.id] ?? we.sets) ? (
                   <>
                     {/* Inputs séries + reps + poids pour la série en cours */}
-                    <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Séries</label>
-                        <input
-                          type="number"
-                          min={done + 1}
-                          max={20}
-                          value={setsMap[we.id] ?? we.sets}
-                          onChange={(e) =>
-                            setSetsMap((prev) => ({ ...prev, [we.id]: Math.max(done + 1, parseInt(e.target.value) || done + 1) }))
-                          }
-                          className="w-full rounded-xl border bg-background px-3 py-2 text-center text-lg font-bold"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Répétitions</label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={200}
-                          value={repsMap[we.id] ?? we.reps}
-                          onChange={(e) =>
-                            setRepsMap((prev) => ({ ...prev, [we.id]: Math.max(1, parseInt(e.target.value) || 1) }))
-                          }
-                          className="w-full rounded-xl border bg-background px-3 py-2 text-center text-lg font-bold"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Poids (kg)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.5}
-                          value={weightMap[we.id] ?? ""}
-                          placeholder="—"
-                          onChange={(e) =>
-                            setWeightMap((prev) => ({
-                              ...prev,
-                              [we.id]: e.target.value === "" ? null : parseFloat(e.target.value),
-                            }))
-                          }
-                          className="w-full rounded-xl border bg-background px-3 py-2 text-center text-lg font-bold"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground opacity-0">Type</label>
+                    <div className="space-y-2">
+                      <NumberStepper
+                        label="Séries"
+                        min={done + 1}
+                        max={20}
+                        value={setsMap[we.id] ?? we.sets}
+                        onChange={(v) => setSetsMap((prev) => ({ ...prev, [we.id]: v ?? done + 1 }))}
+                      />
+                      <NumberStepper
+                        label="Répétitions"
+                        min={1}
+                        max={200}
+                        value={repsMap[we.id] ?? we.reps}
+                        onChange={(v) => setRepsMap((prev) => ({ ...prev, [we.id]: v ?? 1 }))}
+                      />
+                      <NumberStepper
+                        label="Poids"
+                        unit="kg"
+                        min={0}
+                        max={500}
+                        step={2.5}
+                        allowEmpty
+                        value={weightMap[we.id] ?? null}
+                        onChange={(v) => setWeightMap((prev) => ({ ...prev, [we.id]: v }))}
+                      />
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-muted-foreground">Type de série</span>
                         <button
                           onClick={() =>
                             setTypeMap((prev) => {
@@ -809,7 +778,7 @@ export function WorkoutLive({ workout, historyByExercise, prByExercise, warmupCo
                               return { ...prev, [we.id]: SET_TYPE_ORDER[nextIdx] }
                             })
                           }
-                          className={`rounded-xl border px-2 py-2 text-[10px] font-bold transition-colors leading-tight text-center whitespace-normal w-14 ${SET_TYPE_COLORS[typeMap[we.id] ?? "NORMAL"]}`}
+                          className={`h-11 rounded-xl border px-4 text-xs font-bold transition-colors ${SET_TYPE_COLORS[typeMap[we.id] ?? "NORMAL"]}`}
                         >
                           {SET_TYPE_LABELS[typeMap[we.id] ?? "NORMAL"]}
                         </button>
