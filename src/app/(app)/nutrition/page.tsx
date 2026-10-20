@@ -3,9 +3,12 @@ import { redirect } from "next/navigation"
 import { ChevronRight } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/session"
-import { ACTIVITY_LEVELS, computeTargets, portionFactor, type NutritionTargets } from "@/lib/nutrition/calc"
+import { ACTIVITY_LEVELS, portionFactor, type NutritionTargets } from "@/lib/nutrition/calc"
 import { GOAL_LABELS, formatFactor } from "@/lib/nutrition/display"
+import { loadNutritionState } from "./nutrition-state"
 import { ProfileSection } from "./profile-section"
+import { TodayCard } from "./today-card"
+import { WeightSection } from "./weight-section"
 
 const GRADIENT = "linear-gradient(to right, #3F5EFB, #F50535)"
 
@@ -29,10 +32,11 @@ function MacroTile({ label, grams, kcalPerGram, total, color }: {
   )
 }
 
-function TargetsCard({ targets, goalLabel, activityLabel }: {
+function TargetsCard({ targets, goalLabel, activityLabel, adjustment }: {
   targets: NutritionTargets
   goalLabel: string
   activityLabel: string
+  adjustment: number
 }) {
   const diff = targets.calories - targets.tdee
   return (
@@ -54,7 +58,9 @@ function TargetsCard({ targets, goalLabel, activityLabel }: {
         Métabolisme de base : {targets.bmr.toLocaleString("fr-FR")} kcal · Dépense avec ton activité ({activityLabel.toLowerCase()}) :{" "}
         {targets.tdee.toLocaleString("fr-FR")} kcal
         {diff !== 0 && ` · ${diff > 0 ? "+" : "−"}${Math.abs(diff).toLocaleString("fr-FR")} kcal pour ton objectif`}.
-        {" "}Ce sont des estimations : ajuste selon l&apos;évolution de ton poids sur 2 à 3 semaines.
+        {adjustment !== 0 &&
+          ` Dont ${adjustment > 0 ? "+" : "−"}${Math.abs(adjustment).toLocaleString("fr-FR")} kcal d'ajustement d'après l'évolution de ton poids.`}
+        {" "}Ce sont des estimations : tes pesées ci-dessous permettent de les affiner.
       </p>
     </section>
   )
@@ -64,20 +70,15 @@ export default async function NutritionPage() {
   const session = await getSession()
   if (!session) redirect("/login")
 
-  const [user, plans] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { age: true, nutritionProfile: true },
-    }),
+  const [state, plans] = await Promise.all([
+    loadNutritionState(session.user.id),
     prisma.nutritionPlan.findMany({
       orderBy: { dailyCalories: "desc" },
       select: { id: true, name: true, description: true, goal: true, dailyCalories: true, dailyProtein: true, dailyCarbs: true, dailyFats: true },
     }),
   ])
 
-  const profile = user?.nutritionProfile ?? null
-  const age = user?.age ?? null
-  const targets = profile && age ? computeTargets({ ...profile, age }) : null
+  const { profile, age, targets, todayTargets } = state
   const recommended = profile ? plans.find((p) => p.goal === profile.goal) : undefined
   const ordered = recommended ? [recommended, ...plans.filter((p) => p.id !== recommended.id)] : plans
 
@@ -97,9 +98,20 @@ export default async function NutritionPage() {
             targets={targets}
             goalLabel={GOAL_LABELS[profile.goal].label}
             activityLabel={ACTIVITY_LEVELS.find((a) => a.value === profile.activityLevel)?.label ?? ""}
+            adjustment={profile.calorieAdjustment}
           />
         )}
       </ProfileSection>
+
+      {todayTargets && <TodayCard targets={todayTargets} activities={state.activities} bonus={state.bonus} />}
+
+      <WeightSection
+        weights={state.weights}
+        latestWeight={state.latestWeight}
+        advice={state.advice}
+        goal={profile?.goal ?? null}
+        adjustment={profile?.calorieAdjustment ?? 0}
+      />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Plans types</h2>

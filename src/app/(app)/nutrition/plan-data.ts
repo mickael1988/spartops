@@ -26,7 +26,7 @@ export async function loadPlanForUser(planId: string, userId: string) {
   if (!plan || plan.weeks.length === 0) return null
 
   const profile = user?.nutritionProfile ?? null
-  const targets = profile && user?.age ? computeTargets({ ...profile, age: user.age }) : null
+  const targets = profile && user?.age ? computeTargets({ ...profile, age: user.age }, profile.calorieAdjustment) : null
   const matchesGoal = profile?.goal === plan.goal
   const factor = targets && matchesGoal ? portionFactor(targets.calories, plan.dailyCalories) : 1
 

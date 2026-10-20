@@ -35,6 +35,7 @@ model User {
   oneRepMaxes   OneRepMax[]
   programs      Program[]
   nutritionProfile NutritionProfile?
+  weightEntries WeightEntry[]
 }
 
 model Session {
@@ -326,7 +327,22 @@ model NutritionProfile {
   weightKg      Float
   activityLevel ActivityLevel
   goal          NutritionGoal
+  // Correction (kcal/jour) acceptée par l'utilisateur d'après l'évolution de son poids
+  calorieAdjustment Int       @default(0)
+  adjustedAt    DateTime?
   updatedAt     DateTime      @updatedAt
+}
+
+model WeightEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Jour de la pesée (fuseau Europe/Paris), une seule pesée par jour
+  date      DateTime @db.Date
+  weightKg  Float
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
 }
 
 model NutritionPlan {

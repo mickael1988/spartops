@@ -44,13 +44,16 @@ export type NutritionTargets = {
   fats: number
 }
 
-/** Métabolisme de base (Mifflin-St Jeor), dépense quotidienne et répartition des macros. */
-export function computeTargets(p: NutritionProfileInput): NutritionTargets {
+/**
+ * Métabolisme de base (Mifflin-St Jeor), dépense quotidienne et répartition des macros.
+ * `calorieAdjustment` : correction acceptée d'après l'évolution du poids (voir weight.ts).
+ */
+export function computeTargets(p: NutritionProfileInput, calorieAdjustment = 0): NutritionTargets {
   const bmr = 10 * p.weightKg + 6.25 * p.heightCm - 5 * p.age + (p.sex === "HOMME" ? 5 : -161)
   const factor = ACTIVITY_LEVELS.find((a) => a.value === p.activityLevel)?.factor ?? 1.2
   const tdee = bmr * factor
-  // En sèche, on ne descend jamais sous le métabolisme de base.
-  const calories = Math.round(Math.max(tdee * GOAL_FACTOR[p.goal], p.goal === "SECHE" ? bmr : 0) / 10) * 10
+  // On ne descend jamais sous le métabolisme de base.
+  const calories = Math.round(Math.max(tdee * GOAL_FACTOR[p.goal] + calorieAdjustment, bmr) / 10) * 10
 
   const protein = Math.round(p.weightKg * PROTEIN_PER_KG[p.goal])
   // Lipides : au moins 20 % des calories.
@@ -87,6 +90,12 @@ export function normalizeProfileInput(raw: unknown): NutritionProfileInput {
   if (!goal) throw new Error("Choisis ton objectif.")
 
   return { sex, age: input.age, heightCm: input.heightCm, weightKg, activityLevel, goal }
+}
+
+/** Calories supplémentaires d'un jour d'entraînement, apportées en glucides. */
+export function withExtraCarbs(targets: NutritionTargets, kcal: number): NutritionTargets {
+  if (kcal <= 0) return targets
+  return { ...targets, calories: targets.calories + kcal, carbs: targets.carbs + Math.round(kcal / 4) }
 }
 
 /** Facteur d'ajustement des portions d'un plan type pour atteindre l'objectif calorique. */
