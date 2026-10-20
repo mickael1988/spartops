@@ -16,3 +16,8 @@ export function formatStepUnit(step: Pick<StepInput, "durationSec" | "reps" | "d
   if (step.distanceM !== null) return `${step.distanceM.toLocaleString("fr-FR")} m`
   return `${step.reps} reps`
 }
+
+/** Rendu côté serveur (UTC sur Vercel) : on fixe le fuseau pour ne pas décaler les séances du soir. */
+export function formatDate(date: Date, options: Intl.DateTimeFormatOptions): string {
+  return date.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", ...options })
+}

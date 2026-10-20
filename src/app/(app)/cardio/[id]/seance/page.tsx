@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/session"
+import { pickBest } from "@/lib/cardio/score"
 import { CardioLive } from "./cardio-live"
 
 export default async function CardioSeancePage({
@@ -24,8 +25,17 @@ export default async function CardioSeancePage({
 
   if (!wod) notFound()
 
+  const pastSessions = await prisma.userCardioSession.findMany({
+    where: { userId: session.user.id, programId: wod.id },
+    select: { completedAt: true, elapsedSeconds: true, roundsCompleted: true, extraReps: true },
+  })
+  const best = pickBest(wod.format, pastSessions)
+
   return (
     <CardioLive
+      previousBest={
+        best && { elapsedSeconds: best.elapsedSeconds, roundsCompleted: best.roundsCompleted, extraReps: best.extraReps }
+      }
       wod={{
         id: wod.id,
         name: wod.name,

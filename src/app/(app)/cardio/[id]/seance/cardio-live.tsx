@@ -17,6 +17,7 @@ import {
 import { detectCue, playCue, requestWakeLock, unlockAudio } from "@/lib/cardio/cues"
 import { clearLiveState, loadLiveState, saveLiveState } from "@/lib/cardio/live-state"
 import { formatClock, formatStepUnit } from "@/lib/cardio/format"
+import { compareScores, formatScore, isRankedFormat, type ScoreInput } from "@/lib/cardio/score"
 import {
   LOCAL_SNAPSHOT_MAX_AGE_MS,
   MAX_ELAPSED_SECONDS,
@@ -52,7 +53,7 @@ function clampInt(value: number, max: number): number {
   return Math.min(max, Math.max(0, Math.trunc(Number.isFinite(value) ? value : 0)))
 }
 
-export function CardioLive({ wod }: { wod: CardioLiveWod }) {
+export function CardioLive({ wod, previousBest }: { wod: CardioLiveWod; previousBest: ScoreInput | null }) {
   const router = useRouter()
   const timeline = useMemo(() => buildTimeline(wod), [wod])
 
@@ -62,6 +63,7 @@ export function CardioLive({ wod }: { wod: CardioLiveWod }) {
   const [clock, setClock] = useState<Clock | null>(null)
   const [now, setNow] = useState(0)
   const [roundsCompleted, setRoundsCompleted] = useState(0)
+  const [savedScore, setSavedScore] = useState<ScoreInput | null>(null)
   const [checkedSteps, setCheckedSteps] = useState<number[]>([])
   const [finished, setFinished] = useState<Finished | null>(null)
   const [roundsInput, setRoundsInput] = useState(0)
@@ -273,16 +275,20 @@ export function CardioLive({ wod }: { wod: CardioLiveWod }) {
     setSaving(true)
     setSaveError(null)
     const isAmrap = wod.format === "AMRAP"
+    const score: ScoreInput = {
+      elapsedSeconds,
+      roundsCompleted: isAmrap ? clampInt(roundsInput, MAX_ROUNDS) : null,
+      extraReps: isAmrap ? clampInt(extraReps, MAX_EXTRA_REPS) : null,
+    }
     try {
       await queueSaveCardioSession(localSessionId, {
         programId: wod.id,
         startedAt: new Date(clock.startedAtMs).toISOString(),
         completedAt: new Date(finished.atMs).toISOString(),
-        elapsedSeconds,
-        roundsCompleted: isAmrap ? clampInt(roundsInput, MAX_ROUNDS) : null,
-        extraReps: isAmrap ? clampInt(extraReps, MAX_EXTRA_REPS) : null,
+        ...score,
       })
       clearLiveState(wod.id)
+      setSavedScore(score)
       setScreen("saved")
     } catch (err) {
       console.error("[cardio:save]", err)
@@ -467,7 +473,27 @@ export function CardioLive({ wod }: { wod: CardioLiveWod }) {
 
       {screen === "saved" && (
         <div className="space-y-4 rounded-2xl border bg-background/80 backdrop-blur-sm p-5 text-center">
-          <p className="text-xl font-bold">Bravo !</p>
+          {savedScore && isRankedFormat(wod.format) && previousBest && compareScores(wod.format, savedScore, previousBest) < 0 ? (
+            <>
+              <p className="text-xl font-bold">🏆 Nouveau record !</p>
+              <p className="text-3xl font-mono font-bold tabular-nums">{formatScore(wod.format, savedScore)}</p>
+              <p className="text-sm text-muted-foreground">Ancien record : {formatScore(wod.format, previousBest)}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-xl font-bold">Bravo !</p>
+              {savedScore && isRankedFormat(wod.format) && (
+                <>
+                  <p className="text-3xl font-mono font-bold tabular-nums">{formatScore(wod.format, savedScore)}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {previousBest
+                      ? `Ton record : ${formatScore(wod.format, previousBest)}`
+                      : "Premier score sur ce WOD : c'est ton record à battre."}
+                  </p>
+                </>
+              )}
+            </>
+          )}
           <p className="text-sm text-muted-foreground">{syncMessage}</p>
           <Link
             href={`/cardio/${wod.id}`}

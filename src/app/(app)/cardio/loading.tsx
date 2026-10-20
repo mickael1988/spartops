@@ -7,8 +7,9 @@ export default function CardioLoading() {
       </div>
       {/* Onglets */}
       <div className="flex gap-2">
-        <div className="h-9 w-28 rounded-full bg-muted animate-pulse" />
-        <div className="h-9 w-28 rounded-full bg-muted animate-pulse" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-9 w-24 rounded-xl bg-muted animate-pulse" />
+        ))}
       </div>
       {/* Filtres */}
       <div className="space-y-2">

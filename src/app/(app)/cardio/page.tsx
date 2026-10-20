@@ -1,8 +1,11 @@
 import Link from "next/link"
-import { LayoutGrid, Layers, Trophy, type LucideIcon } from "lucide-react"
+import { Layers, Plus, type LucideIcon } from "lucide-react"
+import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { getSession } from "@/lib/session"
 import { cn } from "@/lib/utils"
 import { WodCard } from "./wod-card"
+import { CardioTabs } from "./cardio-tabs"
 import { FORMAT_CONFIG } from "./format-badge"
 import { EQUIPMENT_ICONS, LEVEL_CONFIG } from "./wod-meta"
 
@@ -54,34 +57,6 @@ function FilterPill({
   )
 }
 
-function TabLink({
-  href,
-  active,
-  icon: Icon,
-  children,
-}: {
-  href: string
-  active: boolean
-  icon: LucideIcon
-  children: React.ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
-        active
-          ? "text-white border-transparent"
-          : "text-muted-foreground hover:border-primary hover:text-primary"
-      }`}
-      style={active ? { background: GRADIENT } : undefined}
-    >
-      <Icon className="size-4" aria-hidden="true" />
-      {children}
-    </Link>
-  )
-}
-
 export default async function CardioPage({
   searchParams,
 }: {
@@ -89,15 +64,19 @@ export default async function CardioPage({
 }) {
   const { tab: rawTab, format, level, equipment } = await searchParams
 
-  const tab = rawTab === "classiques" ? "classiques" : "catalogue"
+  const session = await getSession()
+  if (!session) redirect("/login")
+
+  const tab = rawTab === "classiques" ? "classiques" : rawTab === "perso" ? "perso" : "catalogue"
   const validFormat = FORMATS.find((f) => f.value === format)?.value
   const validLevel = LEVELS.find((l) => l.value === level)?.value
   const validEquipment = equipment === "avec" || equipment === "sans" ? equipment : undefined
 
   const wods = await prisma.cardioProgram.findMany({
     where: {
-      userId: null,
-      isBenchmark: tab === "classiques",
+      ...(tab === "perso"
+        ? { userId: session.user.id }
+        : { userId: null, isBenchmark: tab === "classiques" }),
       format: validFormat,
       level: validLevel,
       equipment: validEquipment === "sans" ? null : validEquipment === "avec" ? { not: null } : undefined,
@@ -109,7 +88,7 @@ export default async function CardioPage({
   function buildHref(next: Partial<{ format: string; level: string; equipment: string }>) {
     const params = new URLSearchParams()
     const merged = { format: validFormat, level: validLevel, equipment: validEquipment, ...next }
-    if (tab === "classiques") params.set("tab", "classiques")
+    if (tab !== "catalogue") params.set("tab", tab)
     if (merged.format) params.set("format", merged.format)
     if (merged.level) params.set("level", merged.level)
     if (merged.equipment) params.set("equipment", merged.equipment)
@@ -119,20 +98,30 @@ export default async function CardioPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Cardio</h1>
-        {tab === "classiques" && (
-          <p className="text-muted-foreground mt-1">
-            Les benchmarks historiques du CrossFit, à refaire régulièrement pour mesurer ta progression.
-          </p>
-        )}
-        <p className="text-muted-foreground mt-1">{wods.length} WOD disponible{wods.length > 1 ? "s" : ""}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Cardio</h1>
+          {tab === "classiques" && (
+            <p className="text-muted-foreground mt-1">
+              Les benchmarks historiques du CrossFit, à refaire régulièrement pour mesurer ta progression.
+            </p>
+          )}
+          {tab === "perso" && (
+            <p className="text-muted-foreground mt-1">Tes WOD sur mesure, avec le minuteur et l&apos;historique comme les autres.</p>
+          )}
+          <p className="text-muted-foreground mt-1">{wods.length} WOD disponible{wods.length > 1 ? "s" : ""}</p>
+        </div>
+        <Link
+          href="/cardio/nouveau"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-white shadow-sm"
+          style={{ background: GRADIENT }}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Créer un WOD
+        </Link>
       </div>
 
-      <nav aria-label="Catalogue" className="flex gap-2">
-        <TabLink href="/cardio" active={tab === "catalogue"} icon={LayoutGrid}>Nos WOD</TabLink>
-        <TabLink href="/cardio?tab=classiques" active={tab === "classiques"} icon={Trophy}>Classiques</TabLink>
-      </nav>
+      <CardioTabs active={tab} />
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-nowrap gap-1 sm:gap-2 overflow-x-auto">
@@ -175,7 +164,14 @@ export default async function CardioPage({
         </div>
       </div>
 
-      {wods.length === 0 ? (
+      {wods.length === 0 && tab === "perso" && !validFormat && !validLevel && !validEquipment ? (
+        <div className="rounded-2xl border bg-background/80 backdrop-blur-sm p-6 text-center space-y-3">
+          <p className="text-sm text-muted-foreground">Tu n&apos;as pas encore créé de WOD.</p>
+          <Link href="/cardio/nouveau" className="text-sm font-medium text-primary hover:underline">
+            Créer mon premier WOD
+          </Link>
+        </div>
+      ) : wods.length === 0 ? (
         <div className="rounded-2xl border bg-background/80 backdrop-blur-sm p-6 text-center space-y-2">
           <p className="text-sm text-muted-foreground">Aucun WOD ne correspond à ces filtres.</p>
           <Link
