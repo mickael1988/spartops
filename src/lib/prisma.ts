@@ -21,12 +21,32 @@ function getTcpConnectionString(url: string): string {
   }
 }
 
+/**
+ * pg traite déjà `sslmode=prefer|require|verify-ca` comme `verify-full`, mais affiche un
+ * SECURITY WARNING à chaque connexion (ces modes s'affaibliront dans pg v9).
+ * On écrit explicitement `verify-full` : même sécurité qu'aujourd'hui, plus d'avertissement,
+ * et pas d'affaiblissement silencieux lors d'une future montée de version.
+ */
+function withExplicitSslMode(url: string): string {
+  try {
+    const parsed = new URL(url)
+    const mode = parsed.searchParams.get("sslmode")
+    if (mode === "prefer" || mode === "require" || mode === "verify-ca") {
+      parsed.searchParams.set("sslmode", "verify-full")
+      return parsed.toString()
+    }
+    return url
+  } catch {
+    return url
+  }
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
 function createPrismaClient() {
-  const connectionString = getTcpConnectionString(process.env.DATABASE_URL!)
+  const connectionString = withExplicitSslMode(getTcpConnectionString(process.env.DATABASE_URL!))
   const adapter = new PrismaPg({ connectionString })
   return new PrismaClient({ adapter })
 }
