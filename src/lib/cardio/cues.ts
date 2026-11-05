@@ -33,6 +33,13 @@ export function detectCue(prev: TimelineState | null, next: TimelineState): Cue 
 
 let audioContext: AudioContext | null = null
 
+type AudioSessionLike = { type: string }
+
+function getAudioSession(): AudioSessionLike | null {
+  if (typeof navigator === "undefined" || !("audioSession" in navigator)) return null
+  return (navigator as unknown as { audioSession: AudioSessionLike }).audioSession
+}
+
 export function unlockAudio(): void {
   try {
     const Ctor =
@@ -41,12 +48,27 @@ export function unlockAudio(): void {
     if (!Ctor) return
     if (!audioContext) audioContext = new Ctor()
     if (audioContext.state !== "running") void audioContext.resume()
-    // iOS : joue le Web Audio même avec l'interrupteur silencieux activé (best-effort)
-    if ("audioSession" in navigator) {
-      ;(navigator as unknown as { audioSession: { type: string } }).audioSession.type = "playback"
-    }
+    // iOS : "ambient" se mélange à la musique de l'utilisateur (Musique, Spotify…) au lieu de
+    // l'interrompre. Contrepartie : l'interrupteur silencieux coupe les bips (la vibration reste).
+    // Ne PAS remettre "playback" : cette catégorie est exclusive et coupe la musique.
+    const session = getAudioSession()
+    if (session) session.type = "ambient"
   } catch {
     // audio indisponible : la séance continue sans son
+  }
+}
+
+// À appeler en quittant la séance : sans ça, le contexte audio (variable de module, donc conservé
+// d'une page à l'autre dans la PWA) garde la session audio prise tant que l'app n'est pas fermée.
+export function releaseAudio(): void {
+  try {
+    const session = getAudioSession()
+    if (session) session.type = "auto"
+    const ctx = audioContext
+    audioContext = null
+    if (ctx && ctx.state !== "closed") void ctx.close().catch(() => {})
+  } catch {
+    // ignoré
   }
 }
 

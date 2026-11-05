@@ -14,7 +14,7 @@ import {
   type TimelineState,
   type WodFormat,
 } from "@/lib/cardio/timeline"
-import { detectCue, playCue, requestWakeLock, unlockAudio } from "@/lib/cardio/cues"
+import { detectCue, playCue, releaseAudio, requestWakeLock, unlockAudio } from "@/lib/cardio/cues"
 import { clearLiveState, loadLiveState, saveLiveState } from "@/lib/cardio/live-state"
 import { formatClock, formatStepUnit } from "@/lib/cardio/format"
 import { compareScores, formatScore, isRankedFormat, type ScoreInput } from "@/lib/cardio/score"
@@ -198,6 +198,9 @@ export function CardioLive({ wod, previousBest }: { wod: CardioLiveWod; previous
       release?.()
     }
   }, [screen])
+
+  // Rend la session audio (et donc la musique de l'utilisateur) en quittant la séance
+  useEffect(() => () => releaseAudio(), [])
 
   // Statut de synchronisation une fois le résultat enregistré
   useEffect(() => {
